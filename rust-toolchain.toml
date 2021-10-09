@@ -1,0 +1,3 @@
+[toolchain]
+channel = "esp"
+targets = ["xtensa-esp8266-none-elf"]

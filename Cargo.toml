@@ -8,12 +8,4 @@ publish = false
 xtensa-lx-rt = { version = "0.7.0", features = ["lx106"] }
 xtensa-lx = { version = "0.4.0", features = ["lx106"] }
 panic-halt = "0.2.0"
-esp8266-hal ="0.5.0"
-
-[[example]]
-name = "esp32"
-required-features = ["xtensa-lx-rt/lx6", "xtensa-lx/lx6", "esp32-hal"]
-
-[[example]]
-name = "esp8266"
-required-features = ["xtensa-lx-rt/lx106", "xtensa-lx/lx106", "esp8266-hal"]
+esp8266-hal = "0.5.0"

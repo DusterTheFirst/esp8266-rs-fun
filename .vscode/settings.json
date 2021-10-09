@@ -1,7 +1,10 @@
 {
     "cSpell.words": [
+        "espflash",
+        "esprs",
         "nostartfiles",
         "Tlink",
         "xtensa"
-    ]
+    ],
+    "rust-analyzer.checkOnSave.allTargets": false
 }
