@@ -9,3 +9,10 @@ xtensa-lx-rt = { version = "0.7.0", features = ["lx106"] }
 xtensa-lx = { version = "0.4.0", features = ["lx106"] }
 panic-halt = "0.2.0"
 esp8266-hal = "0.5.0"
+
+[profile.release]
+opt-level = 'z'
+lto = "fat"
+
+[profile.dev.package.'*']
+opt-level = 3
