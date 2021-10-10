@@ -2,36 +2,31 @@
 #![no_main]
 
 use core::{
-    fmt::Write,
-    mem::{self, MaybeUninit},
-    panic::PanicInfo,
+    hint, panic,
+    sync::atomic::{self, Ordering},
 };
+use defmt::{error, info, trace, Format};
 use esp8266_hal::{
     gpio::*,
-    interrupt::{enable_interrupt, InterruptType},
     prelude::*,
     target::Peripherals,
-    time::{Hertz, Microseconds, Milliseconds, Nanoseconds},
-    uart::UART0Serial,
-    watchdog::Watchdog,
+    time::{Hertz, Microseconds, Milliseconds},
 };
-// use panic_halt as _;
-use xtensa_lx::mutex::{CriticalSectionMutex, Mutex};
 
-use crate::time::{current_millis, initialize_timekeeping};
+use crate::{
+    logger::{init_logger, PanicInfo},
+    time::initialize_timekeeping,
+};
 
+mod logger;
 mod time;
 
 #[panic_handler]
-fn panic_handler(info: &PanicInfo) -> ! {
-    (&SERIAL).lock(|serial| {
-        serial
-            .as_mut()
-            .and_then(|serial| writeln!(serial, "PANIC: {}", info).ok())
-    });
+fn panic_handler(info: &panic::PanicInfo) -> ! {
+    error!("PANIC: {}", PanicInfo::from(info));
 
     loop {
-        xtensa_lx::debug_break();
+        atomic::compiler_fence(Ordering::SeqCst);
     }
 }
 
@@ -40,18 +35,20 @@ fn start() -> ! {
     main();
 }
 
-static SERIAL: CriticalSectionMutex<Option<UART0Serial>> = CriticalSectionMutex::new(None);
-
 fn main() -> ! {
     let dp = Peripherals::take().unwrap();
 
     let pins = dp.GPIO.split();
 
-    let mut serial = dp
+    let serial = dp
         .UART0
         .serial(pins.gpio1.into_uart(), pins.gpio3.into_uart());
 
-    write!(serial, "\r\nInitialized:\r\n").unwrap();
+    init_logger(serial);
+
+    info!("Initialized");
+
+    // write!(serial, "\r\nInitialized:\r\n").unwrap();
 
     let mut builtin_led = pins.gpio2.into_push_pull_output();
     let mut red_led = pins.gpio5.into_push_pull_output();
@@ -68,20 +65,10 @@ fn main() -> ! {
     red_led.set_high().unwrap();
     buzzer.set_low().unwrap();
 
-    (&SERIAL).lock(|serial_lock| *serial_lock = Some(serial));
+    info!("Starting");
 
-    (&SERIAL).lock(|serial| {
-        serial
-            .as_mut()
-            .map(|serial| write!(serial, "Starting\n\r").unwrap())
-    });
-
-    for note in JERK_IT_OUT {
-        (&SERIAL).lock(|serial| {
-            serial
-                .as_mut()
-                .map(|serial| writeln!(serial, "{:?}", note).unwrap())
-        });
+    for note in MEGALOVANIA {
+        trace!("{:?}", note);
 
         let MidiNote {
             freq,
@@ -92,16 +79,11 @@ fn main() -> ! {
         let freq_secs = Microseconds::from(freq);
         let sustain_cycles = sustain.0 / freq_secs.0;
 
-        (&SERIAL).lock(|serial| {
-            serial.as_mut().map(|serial| {
-                writeln!(
-                    serial,
-                    "freq_secs: {:?}, sustain_cycles: {:?}",
-                    freq_secs, sustain_cycles
-                )
-                .unwrap()
-            })
-        });
+        trace!(
+            "freq_secs: {}us, sustain_cycles: {}",
+            freq_secs.0,
+            sustain_cycles
+        );
 
         for _ in 0..sustain_cycles {
             timer2.delay_us(Microseconds::from(freq).0);
@@ -112,12 +94,10 @@ fn main() -> ! {
         timer2.delay_us(delay.0);
     }
 
+    info!("Finished");
+
     loop {
-        (&SERIAL)
-            .lock(|serial| serial.as_mut().map(|serial| writeln!(serial, "Finished")))
-            .transpose()
-            .unwrap();
-        xtensa_lx::debug_break();
+        hint::spin_loop()
     }
 }
 
@@ -224,24 +204,22 @@ static JERK_IT_OUT: &[JerkItOutNote] = &[
     },
     JerkItOutNote {
         freq: Hertz(330),
-        sustain: Milliseconds(500),
+        sustain: Milliseconds(200),
+        delay: Milliseconds(0),
+    },
+    JerkItOutNote {
+        freq: Hertz(415),
+        sustain: Milliseconds(200),
+        delay: Milliseconds(50),
+    },
+    JerkItOutNote {
+        freq: Hertz(415),
+        sustain: Milliseconds(200),
         delay: Milliseconds(0),
     },
 ];
 
-// First loop
-//  { .f = 293, .s = 50, .d = 100 },
-//  { .f = 293, .s = 0, .d = 100 },
-//  { .f = 587, .s = 100, .d = 200 },
-//  { .f = 440, .s = 200, .d = 300 },
-//  { .f = 415, .s = 100, .d = 200 },
-//  { .f = 392, .s = 100, .d = 200 },
-//  { .f = 349, .s = 0, .d = 200 },
-//  { .f = 293, .s = 0, .d = 100 },
-//  { .f = 349, .s = 0, .d = 100 },
-//  { .f = 392, .s = 0, .d = 100 },
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 struct MidiNote<F, S, D>
 where
     F: Into<Hertz> + Clone + Copy,
@@ -251,6 +229,23 @@ where
     freq: F,
     sustain: S,
     delay: D,
+}
+
+impl<F, S, D> Format for MidiNote<F, S, D>
+where
+    F: Into<Hertz> + Clone + Copy,
+    S: Into<Microseconds> + Clone + Copy,
+    D: Into<Microseconds> + Clone + Copy,
+{
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(
+            fmt,
+            "Note @ {}Hz for {}us with a delay of {}us",
+            self.freq.into().0,
+            self.sustain.into().0,
+            self.delay.into().0
+        );
+    }
 }
 
 impl<F, S, D> MidiNote<F, S, D>

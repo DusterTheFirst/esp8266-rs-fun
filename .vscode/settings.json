@@ -1,8 +1,10 @@
 {
     "cSpell.words": [
+        "defmt",
         "espflash",
         "esprs",
         "nostartfiles",
+        "Tdefmt",
         "Tlink",
         "xtensa"
     ],

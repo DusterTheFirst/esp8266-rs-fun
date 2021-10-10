@@ -1,9 +1,9 @@
-[target.xtensa-esp8266-none-elf] # esp8266
-# runner = "xtensa-lx106-elf-gdb -q -x openocd.gdb"
-runner = "docker run -v \"$(pwd):/espflash\" --device=/dev/ttyUSB0 -ti esprs/espflash --release /dev/ttyUSB0"
+[target.xtensa-esp8266-none-elf]
+runner = "xtensa-lx106-elf-gdb -q -x openocd.gdb"
 rustflags = [
   "-C", "link-arg=-Wl,-Tlink.x",
   "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-Tdefmt.x",
 ]
 
 [build]
