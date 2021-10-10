@@ -67,7 +67,7 @@ fn main() -> ! {
 
     info!("Starting");
 
-    for note in MEGALOVANIA {
+    for note in JERK_IT_OUT {
         trace!("{:?}", note);
 
         let MidiNote {
@@ -86,9 +86,13 @@ fn main() -> ! {
         );
 
         for _ in 0..sustain_cycles {
-            timer2.delay_us(Microseconds::from(freq).0);
-            builtin_led.toggle().unwrap();
-            buzzer.toggle().unwrap();
+            // buzzer.set_high().unwrap();
+            red_led.set_high().unwrap();
+            timer2.delay_us(freq_secs.0 / 2);
+
+            // buzzer.set_low().unwrap();
+            red_led.set_low().unwrap();
+            timer2.delay_us(freq_secs.0 / 2);
         }
 
         timer2.delay_us(delay.0);
