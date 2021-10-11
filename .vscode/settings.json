@@ -4,6 +4,7 @@
         "espflash",
         "esprs",
         "nostartfiles",
+        "serialport",
         "Tdefmt",
         "Tlink",
         "xtensa"

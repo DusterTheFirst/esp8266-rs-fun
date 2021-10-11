@@ -40,15 +40,15 @@ fn main() -> ! {
 
     let pins = dp.GPIO.split();
 
-    let serial = dp
+    let mut serial = dp
         .UART0
         .serial(pins.gpio1.into_uart(), pins.gpio3.into_uart());
+
+    while serial.read() != Ok(0x00) {}
 
     init_logger(serial);
 
     info!("Initialized");
-
-    // write!(serial, "\r\nInitialized:\r\n").unwrap();
 
     let mut builtin_led = pins.gpio2.into_push_pull_output();
     let mut red_led = pins.gpio5.into_push_pull_output();
@@ -79,18 +79,12 @@ fn main() -> ! {
         let freq_secs = Microseconds::from(freq);
         let sustain_cycles = sustain.0 / freq_secs.0;
 
-        trace!(
-            "freq_secs: {}us, sustain_cycles: {}",
-            freq_secs.0,
-            sustain_cycles
-        );
-
         for _ in 0..sustain_cycles {
-            // buzzer.set_high().unwrap();
+            buzzer.set_high().unwrap();
             red_led.set_high().unwrap();
             timer2.delay_us(freq_secs.0 / 2);
 
-            // buzzer.set_low().unwrap();
+            buzzer.set_low().unwrap();
             red_led.set_low().unwrap();
             timer2.delay_us(freq_secs.0 / 2);
         }
@@ -159,69 +153,45 @@ static MEGALOVANIA: &[MegalovaniaNote] = &[
     },
 ];
 
-type JerkItOutNote = MidiNote<Hertz, Milliseconds, Milliseconds>;
-static JERK_IT_OUT: &[JerkItOutNote] = &[
-    JerkItOutNote {
-        freq: Hertz(415),
-        sustain: Milliseconds(500),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(493),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(415),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(493),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(493),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(415),
-        sustain: Milliseconds(500),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(370),
-        sustain: Milliseconds(500),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(466),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(370),
-        sustain: Milliseconds(250),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(330),
-        sustain: Milliseconds(200),
-        delay: Milliseconds(0),
-    },
-    JerkItOutNote {
-        freq: Hertz(415),
-        sustain: Milliseconds(200),
-        delay: Milliseconds(50),
-    },
-    JerkItOutNote {
-        freq: Hertz(415),
-        sustain: Milliseconds(200),
-        delay: Milliseconds(0),
-    },
-];
+macro_rules! notes {
+    ((
+        frequency = $freq_ty:ident,
+        time = $time_ty:ident
+    )[
+        $($freq:literal for $sustain:literal $(yield for $delay:literal)?;)+
+    ]) => {
+        &[
+            $(
+                &MidiNote {
+                    freq: $freq_ty($freq),
+                    sustain: $time_ty($sustain),
+                    delay: $time_ty(0 $(+ $delay)?)
+                }
+            ),+
+        ]
+    };
+}
+
+static JERK_IT_OUT: &[&dyn Note] = notes! {
+    (
+        frequency = Hertz,
+        time = Milliseconds
+    )
+    [
+        415 for 500;
+        493 for 250;
+        415 for 250;
+        493 for 200 yield for 50;
+        493 for 200 yield for 50;
+        415 for 500;
+        370 for 500;
+        466 for 250;
+        370 for 250;
+        330 for 500 yield for 1000;
+        // 415 for 200 yield for 50;
+        // 415 for 200;
+    ]
+};
 
 #[derive(Clone, Copy)]
 struct MidiNote<F, S, D>
@@ -244,21 +214,25 @@ where
     fn format(&self, fmt: defmt::Formatter) {
         defmt::write!(
             fmt,
-            "Note @ {}Hz for {}us with a delay of {}us",
+            "{}Hz for {}ms yield for {}ms",
             self.freq.into().0,
-            self.sustain.into().0,
-            self.delay.into().0
+            self.sustain.into().0 as f64/ 1000.0,
+            self.delay.into().0 as f64 / 1000.0
         );
     }
 }
 
-impl<F, S, D> MidiNote<F, S, D>
+trait Note: Format + Send + Sync {
+    fn normalize(&self) -> MidiNote<Hertz, Microseconds, Microseconds>;
+}
+
+impl<F, S, D> Note for MidiNote<F, S, D>
 where
-    F: Into<Hertz> + Clone + Copy,
-    S: Into<Microseconds> + Clone + Copy,
-    D: Into<Microseconds> + Clone + Copy,
+    F: Into<Hertz> + Clone + Copy + Send + Sync,
+    S: Into<Microseconds> + Clone + Copy + Send + Sync,
+    D: Into<Microseconds> + Clone + Copy + Send + Sync,
 {
-    pub fn normalize(self: &MidiNote<F, S, D>) -> MidiNote<Hertz, Microseconds, Microseconds> {
+    fn normalize(&self) -> MidiNote<Hertz, Microseconds, Microseconds> {
         MidiNote {
             freq: self.freq.into(),
             sustain: self.sustain.into(),
