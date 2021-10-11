@@ -19,7 +19,6 @@ fn timer1() {
     (&CURRENT_MILLIS).lock(|millis| *millis += 1);
 }
 
-#[must_use]
 pub fn current_millis() -> u128 {
     (&CURRENT_MILLIS).lock(|millis| *millis)
 }

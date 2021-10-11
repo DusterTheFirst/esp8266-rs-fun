@@ -60,6 +60,8 @@ fn main() -> color_eyre::Result<()> {
         println!("Started up");
     }
 
+    reader.get_mut().set_timeout(Duration::from_secs(100))?;
+
     let mut defmt = Command::new("defmt-print")
         .arg("-e")
         .arg(args.elf)
