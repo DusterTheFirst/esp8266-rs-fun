@@ -11,7 +11,7 @@ use micromath::F32Ext;
 
 use crate::{
     logger::{init_logger, PanicInfo},
-    music::THE_GOOD_LIFE,
+    music::{JERK_IT_OUT, THE_GOOD_LIFE},
     time::initialize_timekeeping,
 };
 
@@ -66,31 +66,36 @@ fn main() -> ! {
 
     info!("Starting");
 
-    for note in THE_GOOD_LIFE {
-        trace!(
-            "{} {} for {}ms yield for {}ms",
-            note.tone.letter,
-            note.tone.octave,
-            note.sustain,
-            note.delay
-        );
+    for song in [THE_GOOD_LIFE, JERK_IT_OUT] {
+        info!("Playing song...");
+        for note in song {
+            trace!(
+                "{} {} for {}ms yield for {}ms",
+                note.tone.letter,
+                note.tone.octave,
+                note.sustain,
+                note.delay
+            );
 
-        let frequency = note.tone.frequency().round() as u32;
-        let sustain_cycles = ((note.sustain as f32 / 1000.0) * frequency as f32).round() as u32;
+            let frequency = note.tone.frequency().round() as u32;
+            let sustain_cycles = ((note.sustain as f32 / 1000.0) * frequency as f32).round() as u32;
 
-        trace!("{}Hz for {} cycles", frequency, sustain_cycles);
+            trace!("{}Hz for {} cycles", frequency, sustain_cycles);
 
-        for _ in 0..sustain_cycles {
-            buzzer.set_high().unwrap();
-            red_led.set_high().unwrap();
-            timer2.delay_us(1_000_000 / (frequency * 2));
+            for _ in 0..sustain_cycles {
+                buzzer.set_high().unwrap();
+                red_led.set_high().unwrap();
+                timer2.delay_us(1_000_000 / (frequency * 2));
 
-            buzzer.set_low().unwrap();
-            red_led.set_low().unwrap();
-            timer2.delay_us(1_000_000 / (frequency * 2));
+                buzzer.set_low().unwrap();
+                red_led.set_low().unwrap();
+                timer2.delay_us(1_000_000 / (frequency * 2));
+            }
+
+            timer2.delay_ms(note.delay);
         }
 
-        timer2.delay_ms(note.delay);
+        timer2.delay_ms(2000);
     }
 
     info!("Finished");

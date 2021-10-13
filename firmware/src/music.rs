@@ -53,36 +53,42 @@ use crate::{note::MidiNote, notes};
 //     },
 // ];
 
-// static JERK_IT_OUT: &[MidiNote] = notes! {
-//     (
-//         frequency = Hertz,
-//         time = Milliseconds
-//     )
-//     [
-//         415 for 500;
-//         493 for 250;
-//         415 for 250;
-//         493 for 200 yield for 50;
-//         493 for 200 yield for 50;
-//         415 for 500;
-//         370 for 500;
-//         466 for 250;
-//         370 for 250;
-//         330 for 500 yield for 1000;
-//         // 415 for 200 yield for 50;
-//         // 415 for 200;
-//     ]
-// };
+pub static JERK_IT_OUT: &[MidiNote] = notes! [
+    Gsh 4 for 500,
+    B   4 for 250,
+    Gsh 4 for 250,
+    B   4 for 200 yield for 50,
+    B   4 for 200 yield for 50,
+    Gsh 4 for 500,
+    Fsh 4 for 500,
+    Ash 4 for 250,
+    Fsh 4 for 250,
+    E   4 for 500 yield for 1000
+];
 
 pub static THE_GOOD_LIFE: &[MidiNote] = notes! [
-    Fsh 5 for 500,
-    Fsh 5 for 500,
-    F   5 for 500,
+    Dsh 5 for 250,
+    Fsh 5 for 250,
+    Fsh 5 for 250,
+    Fsh 5 for 250,
+    F   5 for 250,
+    F   5 for 250,
+    Dsh 5 for 250,
     F   5 for 500,
     Dsh 5 for 500,
-    Fsh 5 for 1000,
-    Dsh 5 for 1000,
-    Ash 4 for 1000,
+    Ash 4 for 500,
+    Gsh 4 for 250,
     Gsh 4 for 500,
+    F   5 for 250,
+    F   5 for 250,
+    F   5 for 250,
+    F   5 for 250,
+    Dsh 5 for 250,
+    Dsh 5 for 250,
+    Csh 5 for 250,
+    Dsh 5 for 500,
+    Csh 5 for 500,
+    Ash 4 for 500,
+    Gsh 4 for 250,
     Fsh 4 for 500
 ];
