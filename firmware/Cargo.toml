@@ -16,18 +16,8 @@ opt-level = "z"
 lto = "fat"
 codegen-units = 1
 
-[profile.dev]
-opt-level = "s"
-
 [features]
-default = [
-    "defmt-default",
-    "defmt-debug",
-    "defmt-trace",
-    "defmt-info",
-    "defmt-warn",
-    "defmt-error",
-]
+default = ["defmt-trace"]
 defmt-default = []
 defmt-trace = []
 defmt-debug = []

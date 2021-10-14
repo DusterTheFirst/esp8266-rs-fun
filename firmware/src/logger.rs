@@ -61,7 +61,7 @@ impl<'p> Format for PanicInfo<'p> {
 
         defmt::write!(
             fmt,
-            "panicked at '{}', {}:{}:{}",
+            "panicked at '{=str}', {=str}:{=u32}:{=u32}",
             payload,
             location.file(),
             location.line(),

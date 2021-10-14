@@ -11,7 +11,7 @@ use micromath::F32Ext;
 
 use crate::{
     logger::{init_logger, PanicInfo},
-    music::{JERK_IT_OUT, THE_GOOD_LIFE},
+    music::{JERK_IT_OUT, MEGALOVANIA, THE_GOOD_LIFE},
     time::initialize_timekeeping,
 };
 
@@ -50,11 +50,13 @@ fn main() -> ! {
     info!("Initialized");
 
     let mut builtin_led = pins.gpio2.into_push_pull_output();
-    let mut red_led = pins.gpio5.into_push_pull_output();
-    let mut buzzer = pins.gpio4.into_push_pull_output();
+    let mut red_led = pins.gpio13.into_push_pull_output();
 
-    let mut button1 = pins.gpio14.into_pull_up_input();
-    let mut button2 = pins.gpio12.into_pull_up_input();
+    let mut buzzer_l = pins.gpio5.into_push_pull_output();
+    let mut buzzer_r = pins.gpio4.into_push_pull_output();
+
+    // let mut button1 = pins.gpio14.into_pull_up_input();
+    // let mut button2 = pins.gpio12.into_pull_up_input();
 
     let (timer1, mut timer2) = dp.TIMER.timers();
 
@@ -62,35 +64,44 @@ fn main() -> ! {
 
     builtin_led.set_high().unwrap();
     red_led.set_high().unwrap();
-    buzzer.set_low().unwrap();
+
+    buzzer_l.set_low().unwrap();
+    buzzer_r.set_low().unwrap();
 
     info!("Starting");
 
-    for song in [THE_GOOD_LIFE, JERK_IT_OUT] {
-        info!("Playing song...");
-        for note in song {
-            trace!(
-                "{} {} for {}ms yield for {}ms",
-                note.tone.letter,
-                note.tone.octave,
-                note.sustain,
-                note.delay
-            );
+    let songs = [
+        ("Megalovania", MEGALOVANIA),
+        ("The Good Life", THE_GOOD_LIFE),
+        ("Jerk It Out", JERK_IT_OUT),
+    ];
 
+    for (song_name, song) in songs {
+        info!("Playing \"{=str}\"", song_name);
+
+        for note in song {
             let frequency = note.tone.frequency().round() as u32;
             let sustain_cycles = ((note.sustain as f32 / 1000.0) * frequency as f32).round() as u32;
 
-            trace!("{}Hz for {} cycles", frequency, sustain_cycles);
+            trace!(
+                "{}{=u32} ({=u32}Hz) for {=u32}ms ({=u32} cycles) for {=u32}ms",
+                note.tone.letter,
+                note.tone.octave,
+                frequency,
+                note.sustain,
+                sustain_cycles,
+                note.delay
+            );
 
+            red_led.set_high().unwrap();
             for _ in 0..sustain_cycles {
-                buzzer.set_high().unwrap();
-                red_led.set_high().unwrap();
+                buzzer_l.set_high().unwrap();
                 timer2.delay_us(1_000_000 / (frequency * 2));
 
-                buzzer.set_low().unwrap();
-                red_led.set_low().unwrap();
+                buzzer_l.set_low().unwrap();
                 timer2.delay_us(1_000_000 / (frequency * 2));
             }
+            red_led.set_low().unwrap();
 
             timer2.delay_ms(note.delay);
         }

@@ -3,7 +3,7 @@ use micromath::F32Ext;
 
 #[macro_export]
 macro_rules! notes {
-    ($($note:ident $octave:literal for $sustain:literal $(yield for $delay:literal)?),*) => {
+    ($($note:ident $octave:literal for $sustain:literal $(yield $delay:literal)?),*) => {
         &[
             $(
                 MidiNote {
@@ -58,7 +58,7 @@ pub enum NoteLetter {
 
 impl Format for NoteLetter {
     fn format(&self, fmt: defmt::Formatter) {
-        defmt::write!(fmt, "{}", self.name());
+        defmt::write!(fmt, "{=str}", self.name());
     }
 }
 

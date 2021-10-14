@@ -5,6 +5,8 @@ use esp8266_hal::{
 };
 use xtensa_lx::mutex::{CriticalSectionMutex, Mutex};
 
+defmt::timestamp!("{=u128:µs}", current_millis() * 1000);
+
 static CURRENT_MILLIS: CriticalSectionMutex<u128> = CriticalSectionMutex::new(0);
 
 pub fn initialize_timekeeping(mut timer: Timer1) {
