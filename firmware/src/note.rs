@@ -1,40 +1,61 @@
 use defmt::Format;
 use micromath::F32Ext;
+use num_rational::Ratio;
 
 #[macro_export]
 macro_rules! notes {
-    ($($note:ident $octave:literal for $sustain:literal $(yield $delay:literal)?),*) => {
+    (
+        $($note:ident $octave:literal for $sustain:literal $(/ $sustain_frac:literal)? $(yield $rest:literal $(/ $rest_frac:literal)?)?,)*
+    ) => {
         &[
             $(
-                MidiNote {
-                    tone: $crate::note::NoteLetter::$note.at_octave($octave),
-                    sustain: $sustain,
-                    delay: 0 $(+ $delay)?
+                $crate::note::MusicalNote {
+                    letter: $crate::note::NoteLetter::$note,
+                    octave: $octave,
+                    sustain: num_rational::Ratio::new_raw($sustain, 1 $( - 1 + $sustain_frac)?),
+                    rest: num_rational::Ratio::new_raw(0 $(+ $rest)?, 1 $($( - 1 + $rest_frac)?)?)
                 }
             ),*
         ]
     };
 }
 
-#[derive(Clone, Copy, Format)]
-pub struct MidiNote {
-    /// Underlying note to play
-    pub tone: Note,
-    /// Time in ms to keep the note playing
-    pub sustain: u32,
-    /// Time in ms to wait before playing the next note
-    pub delay: u32,
-}
-
-#[derive(Clone, Copy, Format)]
-pub struct Note {
+#[derive(Clone, Copy)]
+pub struct MusicalNote {
     /// The octave of the note
     pub octave: u32,
     /// The letter of the note
     pub letter: NoteLetter,
+    /// Beats to sustain for
+    pub sustain: Ratio<u32>,
+    /// Rest, if any, that appears after this note
+    pub rest: Ratio<u32>,
 }
 
-impl Note {
+impl Format for MusicalNote {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(
+            fmt,
+            "MusicalNote {{ octave: {=u32}, letter: {} sustain: {=u32}/{=u32}, rest: {=u32}/{=u32} }}",
+            self.octave,
+            self.letter,
+            self.sustain.numer(),
+            self.sustain.denom(),
+            self.rest.numer(),
+            self.rest.denom()
+        );
+    }
+}
+
+#[derive(Clone, Copy, Format)]
+pub struct Music {
+    pub title: &'static str,
+    pub bpm: u32,
+    pub track_1: &'static [MusicalNote],
+    pub track_2: &'static [MusicalNote],
+}
+
+impl MusicalNote {
     /// Calculate the semitones from C0
     pub fn semitones(&self) -> u32 {
         self.octave * 12 + self.letter.semitone()
@@ -96,14 +117,6 @@ impl NoteLetter {
             NoteLetter::Fsh => "F#",
             NoteLetter::G => "G",
             NoteLetter::Gsh => "G#",
-        }
-    }
-
-    /// Create a note from this letter at the given octave
-    pub const fn at_octave(self, octave: u32) -> Note {
-        Note {
-            octave,
-            letter: self,
         }
     }
 }

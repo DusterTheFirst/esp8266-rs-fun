@@ -10,6 +10,7 @@ xtensa-lx = { version = "0.4", features = ["lx106"] }
 esp8266-hal = "0.5"
 defmt = "0.2"
 micromath = "2.0"
+num-rational = { version = "0.4", default-features = false }
 
 [profile.release]
 opt-level = "z"
@@ -17,7 +18,7 @@ lto = "fat"
 codegen-units = 1
 
 [features]
-default = ["defmt-trace"]
+default = []
 defmt-default = []
 defmt-trace = []
 defmt-debug = []

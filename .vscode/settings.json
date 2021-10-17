@@ -1,10 +1,12 @@
 {
     "cSpell.words": [
+        "bflush",
         "defmt",
         "espflash",
         "esprs",
         "micromath",
         "nostartfiles",
+        "numer",
         "roundf",
         "serialport",
         "Tdefmt",

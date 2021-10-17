@@ -8,10 +8,11 @@ use core::{
 use defmt::{error, info, trace};
 use esp8266_hal::{gpio::*, prelude::*, target::Peripherals};
 use micromath::F32Ext;
+use num_rational::Ratio;
 
 use crate::{
     logger::{init_logger, PanicInfo},
-    music::{JERK_IT_OUT, MEGALOVANIA, THE_GOOD_LIFE},
+    music::THE_GOOD_LIFE,
     time::initialize_timekeeping,
 };
 
@@ -70,27 +71,39 @@ fn main() -> ! {
 
     info!("Starting");
 
-    let songs = [
-        ("Megalovania", MEGALOVANIA),
-        ("The Good Life", THE_GOOD_LIFE),
-        ("Jerk It Out", JERK_IT_OUT),
-    ];
+    for music in [THE_GOOD_LIFE] {
+        info!("Playing \"{=str}\" @ {=u32} bpm", music.title, music.bpm);
 
-    for (song_name, song) in songs {
-        info!("Playing \"{=str}\"", song_name);
+        for note in music.track_1 {
+            let frequency = note.frequency().round() as u32;
+            let note_sustain = note.sustain * Ratio::new(60, music.bpm);
 
-        for note in song {
-            let frequency = note.tone.frequency().round() as u32;
-            let sustain_cycles = ((note.sustain as f32 / 1000.0) * frequency as f32).round() as u32;
+            // trace!(
+            //     "{}{=u32} ({=u32}Hz) for {=u32}/{=u32} ({=f32}) beat(s) would sustain {=u32}/{=u32} ({=f32}) seconds",
+            //     note.letter,
+            //     note.octave,
+            //     frequency,
+            //     note.sustain.numer(),
+            //     note.sustain.denom(),
+            //     *note.sustain.numer() as f32 / *note.sustain.denom() as f32,
+            //     note_sustain.numer(),
+            //     note_sustain.denom(),
+            //     *note_sustain.numer() as f32 / *note_sustain.denom() as f32
+            // );
+
+            info!("{}", note);
+
+            let sustain_cycles = ((note.sustain / music.bpm) * 60) * frequency;
+            let sustain_cycles = sustain_cycles.numer() / sustain_cycles.denom();
 
             trace!(
-                "{}{=u32} ({=u32}Hz) for {=u32}ms ({=u32} cycles) for {=u32}ms",
-                note.tone.letter,
-                note.tone.octave,
+                "{}{=u32} ({=u32}Hz) for {=u32}/{=u32}ms ({=u32} cycles)",
+                note.letter,
+                note.octave,
                 frequency,
-                note.sustain,
+                note_sustain.numer(),
+                note_sustain.denom(),
                 sustain_cycles,
-                note.delay
             );
 
             red_led.set_high().unwrap();
@@ -103,7 +116,21 @@ fn main() -> ! {
             }
             red_led.set_low().unwrap();
 
-            timer2.delay_ms(note.delay);
+            let rest_ms = (note.rest / music.bpm) * 60;
+
+            if rest_ms.numer() != &0 {
+                trace!(
+                    "rest ({=u32}Hz) for {=u32}/{=u32}ms",
+                    frequency,
+                    rest_ms.numer(),
+                    rest_ms.denom(),
+                );
+
+                let rest_us = rest_ms * 1000;
+                let rest_us = rest_us.numer() / rest_us.denom();
+
+                timer2.delay_us(rest_us);
+            }
         }
 
         timer2.delay_ms(2000);

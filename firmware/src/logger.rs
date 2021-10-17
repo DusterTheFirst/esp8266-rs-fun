@@ -1,8 +1,7 @@
-use core::{panic, ptr::NonNull};
+use core::{mem::MaybeUninit, panic, ptr::NonNull};
 
 use defmt::Format;
-use esp8266_hal::{prelude::_embedded_hal_serial_Write, uart::UART0Serial};
-use xtensa_lx::mutex::{CriticalSectionMutex, Mutex};
+use esp8266_hal::{prelude::*, uart::UART0Serial};
 
 #[defmt::global_logger]
 struct Logger;
@@ -26,20 +25,20 @@ unsafe impl defmt::Logger for Logger {
 
 impl defmt::Write for Logger {
     fn write(&mut self, bytes: &[u8]) {
-        (&SERIAL).lock(|lock| {
-            if let Some(serial) = lock {
-                for &byte in bytes {
-                    serial.write(byte).unwrap();
-                }
-            }
-        });
+        let serial = unsafe { SERIAL.assume_init_mut() };
+
+        for &byte in bytes {
+            serial.write(byte).unwrap();
+        }
+
+        // serial.flush().unwrap();
     }
 }
 
-static SERIAL: CriticalSectionMutex<Option<UART0Serial>> = CriticalSectionMutex::new(None);
+static mut SERIAL: MaybeUninit<UART0Serial> = MaybeUninit::uninit();
 
 pub fn init_logger(serial: UART0Serial) {
-    (&SERIAL).lock(|lock| lock.replace(serial));
+    unsafe { SERIAL = MaybeUninit::new(serial) }
 }
 
 pub struct PanicInfo<'p>(&'p panic::PanicInfo<'p>);

@@ -60,7 +60,9 @@ fn main() -> color_eyre::Result<()> {
         println!("Started up");
     }
 
-    reader.get_mut().set_timeout(Duration::from_secs(100))?;
+    drop(reader);
+
+    serial_port.set_timeout(Duration::from_secs(100))?;
 
     let mut defmt = Command::new("defmt-print")
         .arg("-e")
@@ -77,8 +79,8 @@ fn main() -> color_eyre::Result<()> {
 
     serial_port.write(&[0x00])?;
 
-    let mut data = [0u8; 1028];
-    while let Ok(len) = reader.read(&mut data) {
+    let mut data = [0u8; 32];
+    while let Ok(len) = serial_port.read(&mut data) {
         // println!("{:x?}", &data[..len]);
         stdin.write_all(&data[..len])?;
         stdin.flush()?;
