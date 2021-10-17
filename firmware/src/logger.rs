@@ -27,11 +27,7 @@ impl defmt::Write for Logger {
     fn write(&mut self, bytes: &[u8]) {
         let serial = unsafe { SERIAL.assume_init_mut() };
 
-        for &byte in bytes {
-            serial.write(byte).unwrap();
-        }
-
-        // serial.flush().unwrap();
+        serial.bwrite_all(bytes).unwrap();
     }
 }
 
