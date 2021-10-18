@@ -13,6 +13,11 @@ micromath = "2.0"
 num-rational = { version = "0.4", default-features = false }
 nb = "1.0"
 
+[build-dependencies]
+ghakuf = "0.5"
+anyhow = "1.0"
+indoc = "1.0"
+
 [profile.release]
 opt-level = "s"
 lto = "fat"

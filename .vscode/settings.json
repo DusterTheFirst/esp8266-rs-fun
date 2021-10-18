@@ -12,6 +12,7 @@
         "serialport",
         "Tdefmt",
         "Tlink",
+        "writedoc",
         "xtensa"
     ],
     "rust-analyzer.checkOnSave.allTargets": false

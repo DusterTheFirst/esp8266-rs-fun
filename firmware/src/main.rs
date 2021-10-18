@@ -11,13 +11,14 @@ use micromath::F32Ext;
 
 use crate::{
     logger::{init_logger, PanicInfo},
-    music::THE_GOOD_LIFE,
+    old_music::THE_GOOD_LIFE,
     time::initialize_timekeeping,
 };
 
 mod logger;
 mod music;
 mod note;
+mod old_music;
 mod time;
 
 #[panic_handler]
